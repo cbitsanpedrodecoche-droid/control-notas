@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verificador de Notas · Fundabit Isla de Coche</title>
+<meta name="description" content="Verificador AES-GCM de notas · Fundabit Isla de Coche · Prof. Luis Vásquez">
+
+<!-- ============ METAETIQUETAS PWA ============ -->
+<meta name="theme-color" content="#a06cd5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Verificador Fundabit">
+<meta name="format-detection" content="telephone=no">
+
+<!-- ============ FUENTES ============ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- El manifest y los iconos se generan dinámicamente por JS -->
+<link id="link-manifest" rel="manifest">
+<link id="link-icono" rel="apple-touch-icon">
+<link id="link-favicon" rel="icon">
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   VARIABLES DE TEMA
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0b0a1f;
+  --bg-soft:#141130;
+  --texto:#f4f2ff;
+  --texto-suave:#a8a3cc;
+  --tarjeta:rgba(255,255,255,.055);
+  --tarjeta-borde:rgba(255,255,255,.11);
+  --input:rgba(255,255,255,.045);
+  --input-borde:rgba(255,255,255,.13);
+  --sombra:0 14px 40px -18px rgba(0,0,0,.85);
+
+  --rojo:#ff6b6b;
+  --turquesa:#4ecdc4;
+  --amarillo:#ffe66d;
+  --morado:#a06cd5;
+  --verde:#25D366;
+}
+body[data-tema="claro"]{
+  --bg:#f2f0fb;
+  --bg-soft:#ffffff;
+  --texto:#1a1636;
+  --texto-suave:#6b6790;
+  --tarjeta:rgba(255,255,255,.85);
+  --tarjeta-borde:rgba(26,22,54,.10);
+  --input:rgba(255,255,255,.9);
+  --input-borde:rgba(26,22,54,.14);
+  --sombra:0 14px 34px -20px rgba(60,40,120,.35);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--texto);
+  font-family:'Nunito',system-ui,-apple-system,sans-serif;
+  font-size:16px;
+  line-height:1.55;
+  overflow-x:hidden;
+  transition:background .35s ease,color .35s ease;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom));
+}
+h1,h2,h3,.fuente-titulo{font-family:'Fredoka',system-ui,sans-serif;font-weight:600;letter-spacing:.2px}
+
+/* ══════════════════════════════════════════════════════════════
+   FONDO ANIMADO (BLOBS)
+   ══════════════════════════════════════════════════════════════ */
+.blobs{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.blob{
+  position:absolute;border-radius:50%;filter:blur(72px);opacity:.34;
+  animation:flotar 20s ease-in-out infinite;
+}
+body[data-tema="claro"] .blob{opacity:.22}
+.b1{width:330px;height:330px;background:radial-gradient(circle,#a06cd5 0%,transparent 70%);top:-110px;left:-90px}
+.b2{width:300px;height:300px;background:radial-gradient(circle,#4ecdc4 0%,transparent 70%);top:34%;right:-120px;animation-delay:-5s}
+.b3{width:280px;height:280px;background:radial-gradient(circle,#ff6b6b 0%,transparent 70%);bottom:-90px;left:8%;animation-delay:-10s}
+.b4{width:220px;height:220px;background:radial-gradient(circle,#ffe66d 0%,transparent 70%);bottom:26%;right:22%;animation-delay:-14s;opacity:.2}
+@keyframes flotar{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(34px,-44px) scale(1.12)}
+  66%{transform:translate(-28px,32px) scale(.94)}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LAYOUT
+   ══════════════════════════════════════════════════════════════ */
+.contenedor{max-width:840px;margin:0 auto;padding:0 16px}
+
+/* ---------- Cabecera ---------- */
+header{
+  padding:calc(26px + env(safe-area-inset-top)) 16px 12px;
+  text-align:center;
+  position:relative;
+}
+.logo-circulo{
+  width:74px;height:74px;margin:0 auto 12px;border-radius:24px;
+  display:grid;place-items:center;font-size:2.1rem;
+  background:linear-gradient(135deg,#a06cd5,#4ecdc4 55%,#ff6b6b);
+  box-shadow:0 14px 34px -14px rgba(160,108,213,.9);
+  animation:latido 3.6s ease-in-out infinite;
+}
+@keyframes latido{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-3deg)}}
+h1{
+  margin:0 0 4px;
+  font-size:clamp(1.45rem,5.6vw,2.15rem);
+  line-height:1.15;
+  background:linear-gradient(90deg,#ff6b6b,#ffe66d,#4ecdc4,#a06cd5);
+  background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:degradado 9s linear infinite;
+}
+@keyframes degradado{to{background-position:220% 0}}
+.subtitulo{
+  margin:0;font-size:.86rem;font-weight:700;color:var(--texto-suave);
+  letter-spacing:.4px;text-transform:uppercase;
+}
+.barra-sup{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* ---------- Botones ---------- */
+.btn{
+  border:none;cursor:pointer;font-family:'Fredoka',sans-serif;font-weight:600;
+  font-size:.95rem;border-radius:14px;padding:12px 17px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .14s ease,box-shadow .22s ease,filter .2s ease,opacity .2s;
+  color:var(--texto);background:var(--tarjeta);border:1.5px solid var(--tarjeta-borde);
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:hover{filter:brightness(1.12)}
+.btn:active{transform:scale(.955)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primario{
+  background:linear-gradient(135deg,#a06cd5,#4ecdc4);
+  color:#0b0a1f;border:none;
+  box-shadow:0 10px 26px -12px rgba(160,108,213,.95);
+}
+.btn-peligro{background:linear-gradient(135deg,#ff6b6b,#a06cd5);color:#0b0a1f;border:none}
+.btn-mini{padding:8px 12px;font-size:.82rem;border-radius:11px}
+.btn-bloque{width:100%}
+
+/* ---------- Tarjetas / paneles ---------- */
+.panel{
+  background:var(--tarjeta);
+  border:1.5px solid var(--tarjeta-borde);
+  border-radius:22px;
+  padding:18px;
+  margin-bottom:16px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:var(--sombra);
+}
+.panel-titulo{
+  margin:0 0 12px;font-size:1.02rem;display:flex;align-items:center;gap:8px;
+  color:var(--texto);
+}
+.panel-titulo .num{
+  font-size:.7rem;background:linear-gradient(135deg,#a06cd5,#4ecdc4);
+  color:#0b0a1f;border-radius:8px;padding:2px 8px;font-weight:700;
+}
+
+/* ---------- Textarea ---------- */
+textarea{
+  width:100%;min-height:180px;resize:vertical;
+  background:var(--input);
+  border:1.5px solid var(--input-borde);
+  border-radius:18px;
+  padding:15px;
+  color:var(--texto);
+  font-family:'Nunito',sans-serif;
+  font-size:.9rem;line-height:1.55;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+textarea::placeholder{color:var(--texto-suave);opacity:.75}
+textarea:focus{border-color:#a06cd5;box-shadow:0 0 0 4px rgba(160,108,213,.18)}
+
+.acciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.acciones .ancho{grid-column:1/-1}
+
+/* ---------- Área de resultados ---------- */
+#resultado{display:none}
+#resultado.visible{display:block;animation:aparecer .4s ease both}
+@keyframes aparecer{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.estado{
+  border-radius:22px;padding:20px 18px;text-align:center;margin-bottom:16px;
+  border:2px solid;position:relative;overflow:hidden;
+  animation:aparecer .45s ease both;
+}
+.estado .emoji{font-size:2.6rem;display:block;line-height:1;margin-bottom:6px}
+.estado .titulo{font-family:'Fredoka';font-size:1.2rem;font-weight:700;letter-spacing:.4px}
+.estado .detalle{font-size:.85rem;margin-top:5px;opacity:.9}
+.estado.ok{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.55);color:#7dffb4}
+.estado.error{background:rgba(255,107,107,.12);border-color:rgba(255,107,107,.55);color:#ffb0b0}
+.estado.aviso{background:rgba(255,230,109,.10);border-color:rgba(255,230,109,.5);color:#ffe9a0}
+body[data-tema="claro"] .estado.ok{color:#0f7a3d}
+body[data-tema="claro"] .estado.error{color:#b32020}
+body[data-tema="claro"] .estado.aviso{color:#8a6b00}
+
+.tarjeta{
+  background:var(--tarjeta);
+  border:1.5px solid var(--tarjeta-borde);
+  border-radius:20px;padding:16px 17px;margin-bottom:13px;
+  animation:aparecer .4s ease both;
+  box-shadow:var(--sombra);
+}
+.tarjeta h3{
+  margin:0 0 12px;font-size:.88rem;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--texto-suave);display:flex;align-items:center;gap:7px;
+}
+.fila{
+  display:flex;justify-content:space-between;gap:14px;align-items:baseline;
+  padding:7px 0;border-bottom:1px dashed var(--tarjeta-borde);
+}
+.fila:last-child{border-bottom:none}
+.fila .etq{font-size:.82rem;color:var(--texto-suave);font-weight:700;flex:0 0 auto}
+.fila .val{font-weight:700;text-align:right;word-break:break-word}
+
+/* Nota grande */
+.nota-bloque{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.nota-circulo{
+  width:92px;height:92px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;text-align:center;
+  font-family:'Fredoka';font-weight:700;font-size:1.6rem;line-height:1;
+  background:conic-gradient(#4ecdc4 var(--pct,0%),rgba(255,255,255,.09) 0);
+  position:relative;
+}
+.nota-circulo::after{
+  content:'';position:absolute;inset:7px;border-radius:50%;background:var(--bg);
+}
+body[data-tema="claro"] .nota-circulo::after{background:#fff}
+.nota-circulo span{position:relative;z-index:1}
+.nota-circulo small{display:block;font-size:.62rem;font-family:'Nunito';font-weight:700;opacity:.65}
+.nota-metricas{display:flex;gap:10px;flex-wrap:wrap;flex:1 1 180px}
+.metrica{
+  flex:1 1 80px;background:var(--input);border-radius:14px;padding:10px 12px;text-align:center;
+  border:1px solid var(--tarjeta-borde);
+}
+.metrica .n{font-family:'Fredoka';font-size:1.25rem;font-weight:700;display:block}
+.metrica .t{font-size:.68rem;color:var(--texto-suave);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+
+/* Detalle pregunta a pregunta */
+.preguntas{display:flex;gap:8px;flex-wrap:wrap}
+.pregunta{
+  flex:1 1 62px;min-width:62px;border-radius:14px;padding:10px 6px;text-align:center;
+  font-weight:800;font-size:.78rem;border:1.5px solid;
+}
+.pregunta .ic{display:block;font-size:1.1rem;line-height:1.2}
+.pregunta.si{background:rgba(37,211,102,.14);border-color:rgba(37,211,102,.5);color:#7dffb4}
+.pregunta.no{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.5);color:#ffb0b0}
+body[data-tema="claro"] .pregunta.si{color:#0f7a3d}
+body[data-tema="claro"] .pregunta.no{color:#b32020}
+
+/* Comparación */
+.comp{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--tarjeta-borde);font-size:.86rem}
+.comp:last-child{border-bottom:none}
+.comp .ico{font-size:1rem}
+.comp .campo{font-weight:700;color:var(--texto-suave);min-width:78px}
+.comp .igual{color:#7dffb4;font-weight:700}
+.comp .dif{color:#ffb0b0;font-weight:700}
+
+/* Chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{
+  font-size:.75rem;font-weight:700;padding:6px 12px;border-radius:999px;
+  background:var(--input);border:1px solid var(--tarjeta-borde);color:var(--texto-suave);
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+}
+
+/* Toast */
+#toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));
+  transform:translate(-50%,140%);
+  background:linear-gradient(135deg,#a06cd5,#4ecdc4);color:#0b0a1f;
+  font-weight:800;font-size:.86rem;padding:12px 20px;border-radius:999px;
+  box-shadow:0 16px 36px -14px rgba(0,0,0,.8);z-index:200;
+  transition:transform .35s cubic-bezier(.2,1.3,.4,1);max-width:90vw;text-align:center;
+}
+#toast.ver{transform:translate(-50%,0)}
+
+/* Historial */
+.hist-cab{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.buscador{
+  flex:1 1 180px;background:var(--input);border:1.5px solid var(--input-borde);
+  border-radius:12px;padding:10px 14px;color:var(--texto);font-family:'Nunito';
+  font-size:.88rem;outline:none;
+}
+.buscador:focus{border-color:#a06cd5}
+.estadisticas{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:9px;margin-bottom:14px}
+.stat{background:var(--input);border:1px solid var(--tarjeta-borde);border-radius:14px;padding:11px 8px;text-align:center}
+.stat .n{font-family:'Fredoka';font-size:1.3rem;font-weight:700;display:block;line-height:1.15}
+.stat .t{font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;color:var(--texto-suave);font-weight:800}
+.stat.ok .n{color:var(--verde)}
+.stat.mal .n{color:var(--rojo)}
+.stat.pro .n{color:var(--turquesa)}
+
+.lista-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;max-height:420px;overflow-y:auto}
+.item-hist{
+  display:flex;align-items:center;gap:11px;
+  background:var(--input);border:1px solid var(--tarjeta-borde);
+  border-radius:15px;padding:11px 13px;transition:transform .15s,border-color .2s;
+}
+.item-hist:hover{transform:translateX(3px);border-color:rgba(160,108,213,.55)}
+.item-hist .avatar{
+  width:40px;height:40px;flex:0 0 auto;border-radius:12px;display:grid;place-items:center;
+  font-family:'Fredoka';font-weight:700;font-size:1rem;color:#0b0a1f;
+  background:linear-gradient(135deg,#a06cd5,#4ecdc4);
+}
+.item-hist .datos{flex:1;min-width:0}
+.item-hist .nom{font-weight:800;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-hist .meta{font-size:.72rem;color:var(--texto-suave);font-weight:600}
+.item-hist .nota{
+  font-family:'Fredoka';font-weight:700;font-size:1.05rem;flex:0 0 auto;
+  padding:4px 11px;border-radius:11px;
+}
+.nota.aprobado{background:rgba(37,211,102,.16);color:#7dffb4}
+.nota.reprobado{background:rgba(255,107,107,.16);color:#ffb0b0}
+body[data-tema="claro"] .nota.aprobado{color:#0f7a3d}
+body[data-tema="claro"] .nota.reprobado{color:#b32020}
+
+.vacio{text-align:center;color:var(--texto-suave);font-size:.87rem;padding:22px 10px;font-weight:600}
+
+/* Pie */
+footer{
+  text-align:center;padding:26px 16px 10px;font-size:.76rem;
+  color:var(--texto-suave);font-weight:600;line-height:1.7;
+}
+footer .sep{opacity:.4;margin:0 6px}
+
+/* Botón instalar */
+#btn-instalar{display:none}
+#btn-instalar.visible{display:inline-flex;animation:aparecer .4s ease both}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(160,108,213,.45);border-radius:9px}
+::-webkit-scrollbar-thumb:hover{background:rgba(160,108,213,.7)}
+
+/* Responsive */
+@media(max-width:520px){
+  .acciones{grid-template-columns:1fr}
+  .acciones .ancho{grid-column:auto}
+  .nota-circulo{width:78px;height:78px;font-size:1.35rem}
+  .logo-circulo{width:64px;height:64px;font-size:1.8rem}
+}
+@media(min-width:900px){
+  .contenedor{max-width:900px}
+}
+</style>
+</head>
+<body data-tema="oscuro">
+
+<!-- ══════════ FONDO ANIMADO ══════════ -->
+<div class="blobs" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+</div>
+
+<!-- ══════════ CABECERA ══════════ -->
+<header>
+  <div class="logo-circulo" aria-hidden="true">🔐</div>
+  <h1>Verificador de Notas</h1>
+  <p class="subtitulo">Fundabit Isla de Coche · Prof. Luis Vásquez</p>
+  <div class="barra-sup">
+    <button class="btn btn-mini" id="btn-tema" title="Cambiar tema">🌙 Modo claro</button>
+    <button class="btn btn-mini" id="btn-instalar">📲 Instalar App</button>
+  </div>
+</header>
+
+<!-- ══════════ CONTENIDO PRINCIPAL ══════════ -->
+<main class="contenedor">
+
+  <!-- ---------- Entrada ---------- -->
+  <section class="panel">
+    <h2 class="panel-titulo"><span class="num">1</span> Pega el mensaje de WhatsApp</h2>
+    <textarea id="entrada" spellcheck="false" autocomplete="off"
+      placeholder="Pega aquí el mensaje completo que envió el estudiante...&#10;&#10;Debe incluir la línea:&#10;🔒 TOKEN CIFRADO AES-GCM:&#10;`eyJ...`"></textarea>
+
+    <div class="acciones">
+      <button class="btn btn-primario ancho" id="btn-verificar">🔍 Verificar mensaje</button>
+      <button class="btn" id="btn-limpiar">🗑️ Limpiar</button>
+      <button class="btn" id="btn-ejemplo">📋 Ver ejemplo</button>
+    </div>
+  </section>
+
+  <!-- ---------- Resultados ---------- -->
+  <section id="resultado" aria-live="polite"></section>
+
+  <!-- ---------- Historial ---------- -->
+  <section class="panel" id="panel-historial">
+    <h2 class="panel-titulo"><span class="num">2</span> Historial de verificaciones</h2>
+
+    <div class="estadisticas" id="estadisticas"></div>
+
+    <div class="hist-cab">
+      <input type="search" class="buscador" id="buscador" placeholder="🔎 Buscar por nombre o cédula...">
+      <button class="btn btn-mini" id="btn-csv">⬇️ CSV</button>
+      <button class="btn btn-mini" id="btn-borrar-hist">🧹 Vaciar</button>
+    </div>
+
+    <ul class="lista-hist" id="lista-hist"></ul>
+  </section>
+
+</main>
+
+<!-- ══════════ PIE ══════════ -->
+<footer>
+  Sistema de verificación AES-GCM · v1.0<br>
+  Fundabit Isla de Coche <span class="sep">·</span> Prof. Luis Vásquez <span class="sep">·</span> 2026
+</footer>
+
+<div id="toast" role="status"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   VERIFICADOR DE NOTAS · FUNDABIT ISLA DE COCHE
+   PWA de un solo archivo — Vanilla JS + Web Crypto API
+   ════════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+/* ──────────────────────────────────────────────────────────────
+   1. CONSTANTES Y CONFIGURACIÓN
+   ────────────────────────────────────────────────────────────── */
+const CLAVE_SECRETA = 'Fundabit-Coche-LuisVasquez-2026!';   // 32 caracteres exactos
+const LS_HISTORIAL = 'fundabit_verificador_hist_v1';
+const LS_TEMA      = 'fundabit_verificador_tema';
+const MAX_HISTORIAL = 10;                                    // últimos 10 visibles
+const MATERIA_ESPERADA = 'Arquitectura del computador';
+const CLASE_ESPERADA   = '01';
+
+/* ──────────────────────────────────────────────────────────────
+   2. UTILIDADES GENERALES
+   ────────────────────────────────────────────────────────────── */
+const $ = sel => document.querySelector(sel);
+
+/** Muestra un aviso flotante temporal */
+let toastTimer = null;
+function toast(msg, ms){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('ver');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('ver'), ms || 2400);
+}
+
+/** Normaliza texto para comparaciones (sin acentos, sin signos, minúsculas) */
+function normalizar(s){
+  return String(s == null ? '' : s)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]/g,'');
+}
+
+/** Normaliza una cédula dejando solo dígitos y quitando ceros a la izquierda */
+function normalizarCedula(s){
+  const d = String(s == null ? '' : s).replace(/\D/g,'').replace(/^0+/,'');
+  return d;
+}
+
+/** Escapa HTML para inyección segura */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   3. CRIPTOGRAFÍA — AES-256-GCM con Web Crypto API
+   ────────────────────────────────────────────────────────────── */
+
+/** Convierte un string Base64URL a Uint8Array */
+function b64urlABytes(str){
+  let s = String(str).trim().replace(/-/g,'+').replace(/_/g,'/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/** Convierte un Uint8Array a string Base64URL (sin padding) */
+function bytesAB64url(bytes){
+  let bin = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+/** Importa la clave secreta simétrica (AES-GCM 256) */
+let _claveCache = null;
+async function obtenerClave(){
+  if (_claveCache) return _claveCache;
+  const raw = new TextEncoder().encode(CLAVE_SECRETA);   // 32 bytes = 256 bits
+  _claveCache = await crypto.subtle.importKey(
+    'raw', raw, { name:'AES-GCM' }, false, ['encrypt','decrypt']
+  );
+  return _claveCache;
+}
+
+/**
+ * Descifra un token Base64URL con formato: [IV 12 bytes][ciphertext AES-GCM]
+ * @returns {Promise<Object>} payload JSON descifrado
+ */
+async function descifrarToken(token){
+  const datos = b64urlABytes(token);
+  if (datos.length <= 12) throw new Error('Token demasiado corto');
+
+  const iv         = datos.slice(0, 12);          // IV de 12 bytes al inicio
+  const ciphertext = datos.slice(12);             // resto = ciphertext + tag
+
+  const clave = await obtenerClave();
+  const plano = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, clave, ciphertext);
+  const texto = new TextDecoder().decode(plano);
+
+  let json;
+  try { json = JSON.parse(texto); }
+  catch(e){ throw new Error('El contenido descifrado no es JSON válido'); }
+  if (!json || typeof json !== 'object') throw new Error('Payload inválido');
+  return json;
+}
+
+/**
+ * Cifra un objeto JSON con el mismo esquema (usado para generar el ejemplo).
+ * @returns {Promise<string>} token Base64URL
+ */
+async function cifrarToken(obj){
+  const clave = await obtenerClave();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name:'AES-GCM', iv },
+    clave,
+    new TextEncoder().encode(JSON.stringify(obj))
+  );
+  const todo = new Uint8Array(iv.length + ct.byteLength);
+  todo.set(iv, 0);
+  todo.set(new Uint8Array(ct), iv.length);
+  return bytesAB64url(todo);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   4. EXTRACCIÓN DE DATOS DEL MENSAJE
+   ────────────────────────────────────────────────────────────── */
+
+/** Extrae el token cifrado AES-GCM del mensaje de WhatsApp */
+function extraerTokenCifrado(texto){
+  // a) Formato oficial: 🔒 TOKEN CIFRADO AES-GCM: `xxxxx`
+  let m = texto.match(/TOKEN\s+CIFRADO\s+AES[-\s]?GCM[^\n]*?[`´'"“”]\s*([A-Za-z0-9_\-]{16,})\s*[`´'"“”]/i);
+  if (m) return m[1];
+
+  // b) Cualquier bloque entre backticks suficientemente largo
+  m = texto.match(/[`´]\s*([A-Za-z0-9_\-]{40,})\s*[`´]/);
+  if (m) return m[1];
+
+  // c) Último recurso: cadena Base64URL larga suelta
+  m = texto.match(/(?<![A-Za-z0-9_\-])([A-Za-z0-9_\-]{60,})(?![A-Za-z0-9_\-])/);
+  if (m) return m[1];
+
+  return null;
+}
+
+/** Extrae el token corto de respaldo visual FB26-XXXX-XXXX-XXXX-XXXX */
+function extraerTokenCorto(texto){
+  const m = texto.match(/FB26(?:[\s\-][A-Z0-9]{4}){4}/i);
+  return m ? m[0].replace(/\s/g,'').toUpperCase() : null;
+}
+
+/** Extrae los datos visibles del mensaje para compararlos con lo descifrado */
+function extraerDatosVisibles(texto){
+  const out = {};
+  let m;
+
+  m = texto.match(/(?:estudiante|nombre(?:\s+del\s+estudiante)?)\s*[:\-]\s*([^\n]+)/i);
+  if (m) out.n = m[1].replace(/[*_`]/g,'').trim();
+
+  m = texto.match(/(?:c[eé]dula|identificaci[oó]n|c\.?\s?i\.?)\s*[:\-]\s*([\d.\-\s]{6,})/i);
+  if (m) out.cc = m[1].replace(/\D/g,'');
+
+  m = texto.match(/(?:materia)\s*[:\-]\s*([^\n]+)/i);
+  if (m) out.m = m[1].replace(/[*_`]/g,'').trim();
+
+  m = texto.match(/(?:clase)\s*[:\-]\s*([^\n]+)/i);
+  if (m) out.c = m[1].replace(/[*_`]/g,'').trim();
+
+  m = texto.match(/(\d{1,2})\s*(?:\/|de)\s*20/);
+  if (m) out.p = parseInt(m[1], 10);
+
+  m = texto.match(/(\d)\s*(?:\/|de)\s*7/);
+  if (m) out.a = parseInt(m[1], 10);
+
+  return out;
+}
+
+/** Normaliza el payload descifrado aceptando claves cortas o largas */
+function normalizarPayload(o){
+  return {
+    m : o.m  != null ? o.m  : (o.materia  || ''),
+    c : o.c  != null ? o.c  : (o.clase    || ''),
+    n : o.n  != null ? o.n  : (o.nombre   || ''),
+    cc: o.cc != null ? o.cc : (o.cedula || o['cédula'] || ''),
+    p : Number(o.p != null ? o.p : (o.puntos   || 0)),
+    a : Number(o.a != null ? o.a : (o.aciertos || 0)),
+    f : o.f  != null ? o.f  : (o.fecha    || ''),
+    d : Array.isArray(o.d) ? o.d : (Array.isArray(o.detalle) ? o.detalle : [])
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   5. SONIDOS SINTÉTICOS (Web Audio API)
+   ────────────────────────────────────────────────────────────── */
+let _ac = null;
+function contextoAudio(){
+  if (!_ac){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    _ac = new AC();
+  }
+  if (_ac.state === 'suspended') _ac.resume().catch(()=>{});
+  return _ac;
+}
+
+/** "Ding" alegre para mensaje válido */
+function sonidoDing(){
+  try{
+    const ac = contextoAudio(); if (!ac) return;
+    const t = ac.currentTime;
+    [880, 1174.7, 1568].forEach((f, i) => {
+      const osc = ac.createOscillator(), g = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const t0 = t + i * 0.085;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.4);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t0); osc.stop(t0 + 0.45);
+    });
+  }catch(e){/* silencio */}
+}
+
+/** "Buzz" grave para mensaje alterado */
+function sonidoBuzz(){
+  try{
+    const ac = contextoAudio(); if (!ac) return;
+    const t = ac.currentTime;
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(170, t);
+    osc.frequency.exponentialRampToValueAtTime(65, t + 0.42);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.14, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    osc.connect(g); g.connect(ac.destination);
+    osc.start(t); osc.stop(t + 0.55);
+  }catch(e){/* silencio */}
+}
+
+/* ──────────────────────────────────────────────────────────────
+   6. HISTORIAL LOCAL (localStorage)
+   ────────────────────────────────────────────────────────────── */
+function leerHistorial(){
+  try{
+    const raw = localStorage.getItem(LS_HISTORIAL);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+
+function guardarHistorial(arr){
+  try{ localStorage.setItem(LS_HISTORIAL, JSON.stringify(arr)); }
+  catch(e){ toast('⚠️ No se pudo guardar el historial'); }
+}
+
+/** Añade un registro evitando duplicados por token */
+function agregarAlHistorial(reg){
+  const arr = leerHistorial();
+  if (reg.id && arr.some(r => r.id === reg.id)) return;
+  arr.unshift(reg);
+  if (arr.length > 300) arr.length = 300;   // límite de seguridad
+  guardarHistorial(arr);
+}
+
+function renderHistorial(filtro){
+  const arr = leerHistorial();
+  const lista = $('#lista-hist');
+  const q = normalizar(filtro || '');
+
+  // ---- Estadísticas globales (sobre todo el historial) ----
+  const total = arr.length;
+  const suma  = arr.reduce((s, r) => s + (Number(r.puntos) || 0), 0);
+  const prom  = total ? (suma / total) : 0;
+  const aprob = arr.filter(r => Number(r.puntos) >= 10).length;
+  const reprob = total - aprob;
+
+  $('#estadisticas').innerHTML = `
+    <div class="stat pro"><span class="n">${total}</span><span class="t">Verificados</span></div>
+    <div class="stat"><span class="n">${prom.toFixed(1)}</span><span class="t">Promedio</span></div>
+    <div class="stat ok"><span class="n">${aprob}</span><span class="t">Aprobados</span></div>
+    <div class="stat mal"><span class="n">${reprob}</span><span class="t">Reprobados</span></div>
+  `;
+
+  // ---- Filtro de búsqueda ----
+  let visibles = arr;
+  if (q){
+    visibles = arr.filter(r =>
+      normalizar(r.nombre).includes(q) || normalizar(r.cedula).includes(q)
+    );
+  }
+
+  if (!visibles.length){
+    lista.innerHTML = `<li class="vacio">${q ? '🔍 Sin resultados para esa búsqueda' : '📭 Aún no hay verificaciones guardadas'}</li>`;
+    return;
+  }
+
+  lista.innerHTML = visibles.slice(0, MAX_HISTORIAL).map(r => {
+    const inicial = (r.nombre || '?').trim().charAt(0).toUpperCase();
+    const aprobado = Number(r.puntos) >= 10;
+    return `
+      <li class="item-hist">
+        <div class="avatar">${esc(inicial)}</div>
+        <div class="datos">
+          <div class="nom">${esc(r.nombre || 'Sin nombre')}</div>
+          <div class="meta">CI ${esc(r.cedula || '—')} · ${esc(r.fecha || '')}</div>
+        </div>
+        <div class="nota ${aprobado ? 'aprobado' : 'reprobado'}">${esc(r.puntos)}/20</div>
+      </li>`;
+  }).join('');
+}
+
+/** Exporta el historial completo a CSV (separador ; y BOM para Excel) */
+function exportarCSV(){
+  const arr = leerHistorial();
+  if (!arr.length){ toast('📭 No hay datos para exportar'); return; }
+
+  const cab = ['Fecha','Nombre','Cedula','Materia','Clase','Puntos','Aciertos','Porcentaje','Estado','Token corto'];
+  const filas = arr.map(r => [
+    r.fecha, r.nombre, r.cedula, r.materia, r.clase,
+    r.puntos, r.aciertos, r.porcentaje + '%',
+    (Number(r.puntos) >= 10 ? 'APROBADO' : 'REPROBADO'),
+    r.tokenCorto || ''
+  ]);
+
+  const csv = '\uFEFF' + [cab, ...filas]
+    .map(f => f.map(c => `"${String(c == null ? '' : c).replace(/"/g,'""')}"`).join(';'))
+    .join('\r\n');
+
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const hoy = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `verificaciones_fundabit_${hoy}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 1500);
+  toast('⬇️ CSV exportado');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   7. RENDERIZADO DE RESULTADOS
+   ────────────────────────────────────────────────────────────── */
+
+/** Banner de estado grande */
+function bannerEstado(tipo, emoji, titulo, detalle){
+  return `
+    <div class="estado ${tipo}">
+      <span class="emoji">${emoji}</span>
+      <div class="titulo">${esc(titulo)}</div>
+      ${detalle ? `<div class="detalle">${esc(detalle)}</div>` : ''}
+    </div>`;
+}
+
+/** Compara los datos visibles del mensaje con los descifrados */
+function construirComparacion(visibles, datos){
+  const filas = [];
+
+  const push = (campo, visible, real, comparador) => {
+    if (visible == null || visible === '') return;
+    const igual = comparador(visible, real);
+    filas.push(`
+      <div class="comp">
+        <span class="ico">${igual ? '✅' : '❌'}</span>
+        <span class="campo">${esc(campo)}</span>
+        <span class="${igual ? 'igual' : 'dif'}">
+          ${igual ? 'Coincide' : `Difiere · mensaje: "${esc(visible)}" / real: "${esc(real)}"`}
+        </span>
+      </div>`);
+  };
+
+  push('Nombre', visibles.n, datos.n, (a,b) => normalizar(a) === normalizar(b));
+  push('Cédula', visibles.cc, datos.cc, (a,b) => normalizarCedula(a) === normalizarCedula(b));
+  push('Materia', visibles.m, datos.m, (a,b) => normalizar(a) === normalizar(b));
+  push('Clase', visibles.c, datos.c, (a,b) => normalizar(a) === normalizar(b));
+  push('Puntos', visibles.p, datos.p, (a,b) => Number(a) === Number(b));
+  push('Aciertos', visibles.a, datos.a, (a,b) => Number(a) === Number(b));
+
+  if (!filas.length){
+    return `<div class="vacio">No se detectaron datos visibles comparables en el mensaje.</div>`;
+  }
+  return filas.join('');
+}
+
+/** Genera el HTML completo del panel de resultados */
+function pintarResultado(estado, datos, meta){
+  const cont = $('#resultado');
+
+  let html = '';
+
+  /* ---- Banner de estado ---- */
+  if (estado.tipo === 'ok'){
+    html += bannerEstado('ok', '✅', 'MENSAJE VÁLIDO', estado.detalle || 'Token descifrado correctamente');
+  } else if (estado.tipo === 'error'){
+    html += bannerEstado('error', '❌', estado.titulo || 'TOKEN INVÁLIDO', estado.detalle || 'Mensaje alterado o corrupto');
+  } else {
+    html += bannerEstado('aviso', '⚠️', estado.titulo || 'ADVERTENCIA', estado.detalle || '');
+  }
+
+  /* ---- Si hay datos descifrados, mostramos las tarjetas ---- */
+  if (datos){
+    const pct      = Math.max(0, Math.min(100, (datos.p / 20) * 100));
+    const aprobado = datos.p >= 10;
+
+    /* Materia / Clase */
+    html += `
+      <div class="tarjeta">
+        <h3>📚 Evaluación</h3>
+        <div class="fila"><span class="etq">Materia</span><span class="val">${esc(datos.m || '—')}</span></div>
+        <div class="fila"><span class="etq">Clase</span><span class="val">${esc(datos.c || '—')}</span></div>
+        <div class="fila"><span class="etq">Fecha</span><span class="val">${esc(datos.f || '—')}</span></div>
+      </div>`;
+
+    /* Estudiante */
+    html += `
+      <div class="tarjeta">
+        <h3>👤 Estudiante</h3>
+        <div class="fila"><span class="etq">Nombre</span><span class="val">${esc(datos.n || '—')}</span></div>
+        <div class="fila"><span class="etq">Cédula</span><span class="val">${esc(datos.cc || '—')}</span></div>
+      </div>`;
+
+    /* Nota */
+    html += `
+      <div class="tarjeta">
+        <h3>📊 Calificación</h3>
+        <div class="nota-bloque">
+          <div class="nota-circulo" style="--pct:${pct}%">
+            <span>${esc(datos.p)}<small>/ 20</small></span>
+          </div>
+          <div class="nota-metricas">
+            <div class="metrica"><span class="n">${esc(datos.p)}/20</span><span class="t">Puntos</span></div>
+            <div class="metrica"><span class="n">${esc(datos.a)}/7</span><span class="t">Aciertos</span></div>
+            <div class="metrica"><span class="n">${pct.toFixed(0)}%</span><span class="t">Porcentaje</span></div>
+            <div class="metrica"><span class="n" style="color:${aprobado ? '#25D366' : '#ff6b6b'}">${aprobado ? 'SÍ' : 'NO'}</span><span class="t">Aprobado</span></div>
+          </div>
+        </div>
+      </div>`;
+
+    /* Detalle pregunta por pregunta */
+    const detalle = Array.isArray(datos.d) ? datos.d : [];
+    if (detalle.length){
+      html += `
+        <div class="tarjeta">
+          <h3>📋 Detalle por pregunta</h3>
+          <div class="preguntas">
+            ${detalle.map((v, i) => `
+              <div class="pregunta ${Number(v) === 1 ? 'si' : 'no'}">
+                <span class="ic">${Number(v) === 1 ? '✅' : '❌'}</span>
+                P${i + 1}
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    /* Comparación con los datos visibles y el token corto */
+    html += `
+      <div class="tarjeta">
+        <h3>🔍 Verificación de integridad</h3>
+        ${construirComparacion(meta.visibles, datos)}
+        ${meta.tokenCorto ? `
+          <div class="comp" style="margin-top:8px">
+            <span class="ico">🔑</span>
+            <span class="campo">Token corto</span>
+            <span class="igual" style="font-family:ui-monospace,monospace">${esc(meta.tokenCorto)}</span>
+          </div>` : `
+          <div class="comp" style="margin-top:8px">
+            <span class="ico">ℹ️</span>
+            <span class="campo">Token corto</span>
+            <span style="color:var(--texto-suave)">No presente en el mensaje</span>
+          </div>`}
+        <div class="chips">
+          <span class="chip">AES-256-GCM</span>
+          <span class="chip">IV 12 bytes</span>
+          <span class="chip">Base64URL</span>
+        </div>
+      </div>`;
+
+    /* Botón copiar resumen */
+    html += `
+      <div class="tarjeta" style="text-align:center">
+        <button class="btn btn-primario btn-bloque" id="btn-copiar">📋 Copiar datos del estudiante</button>
+      </div>`;
+  }
+
+  cont.innerHTML = html;
+  cont.classList.add('visible');
+
+  /* Enlaza el botón de copiar si existe */
+  const btnCopiar = $('#btn-copiar');
+  if (btnCopiar && datos){
+    btnCopiar.addEventListener('click', () => copiarDatos(datos));
+  }
+
+  cont.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/** Copia un resumen limpio del estudiante al portapapeles (formato para Excel) */
+async function copiarDatos(d){
+  const resumen =
+    `Nombre: ${d.n}\n` +
+    `Cédula: ${d.cc}\n` +
+    `Materia: ${d.m}\n` +
+    `Clase: ${d.c}\n` +
+    `Puntos: ${d.p}/20\n` +
+    `Aciertos: ${d.a}/7\n` +
+    `Porcentaje: ${((d.p / 20) * 100).toFixed(0)}%\n` +
+    `Fecha: ${d.f}`;
+
+  try{
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(resumen);
+    } else {
+      // Fallback para contextos no seguros
+      const ta = document.createElement('textarea');
+      ta.value = resumen;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    toast('📋 Datos copiados al portapapeles');
+  }catch(e){
+    toast('⚠️ No se pudo copiar');
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   8. LÓGICA PRINCIPAL DE VERIFICACIÓN
+   ────────────────────────────────────────────────────────────── */
+async function verificar(){
+  const texto = $('#entrada').value.trim();
+
+  if (!texto){
+    $('#resultado').classList.add('visible');
+    $('#resultado').innerHTML = bannerEstado('aviso','⚠️','SIN MENSAJE','Pega primero el mensaje de WhatsApp del estudiante.');
+    return;
+  }
+
+  // Comprobación de compatibilidad criptográfica
+  if (!window.crypto || !window.crypto.subtle){
+    $('#resultado').classList.add('visible');
+    $('#resultado').innerHTML = bannerEstado('error','🔒','API CRIPTOGRÁFICA NO DISPONIBLE',
+      'Abre la app desde HTTPS o localhost (no desde file:// en algunos navegadores).');
+    return;
+  }
+
+  const tokenCifrado = extraerTokenCifrado(texto);
+  const tokenCorto   = extraerTokenCorto(texto);
+  const visibles     = extraerDatosVisibles(texto);
+
+  /* ---- Sin token cifrado ---- */
+  if (!tokenCifrado){
+    $('#resultado').classList.add('visible');
+    $('#resultado').innerHTML = bannerEstado('aviso','⚠️','NO SE ENCONTRÓ EL TOKEN',
+      'El mensaje no contiene el bloque "🔒 TOKEN CIFRADO AES-GCM:" con el token entre backticks.');
+    sonidoBuzz();
+    return;
+  }
+
+  /* ---- Intento de descifrado ---- */
+  let crudo;
+  try{
+    crudo = await descifrarToken(tokenCifrado);
+  }catch(e){
+    $('#resultado').classList.add('visible');
+    $('#resultado').innerHTML = bannerEstado('error','❌','TOKEN INVÁLIDO · MENSAJE ALTERADO',
+      'No se pudo descifrar con la clave oficial. El token fue modificado, truncado o generado con otra clave.');
+    sonidoBuzz();
+    return;
+  }
+
+  const datos = normalizarPayload(crudo);
+
+  /* ---- Validación de campos obligatorios ---- */
+  const faltantes = [];
+  if (!datos.m)  faltantes.push('materia (m)');
+  if (!datos.c)  faltantes.push('clase (c)');
+  if (!datos.n)  faltantes.push('nombre (n)');
+  if (!datos.cc) faltantes.push('cédula (cc)');
+  if (!datos.f)  faltantes.push('fecha (f)');
+  if (!Array.isArray(datos.d) || !datos.d.length) faltantes.push('detalle (d)');
+
+  /* ---- Comparación con los datos visibles del mensaje ---- */
+  let alterado = false;
+  const comparaciones = [];
+  const cmp = (campo, visible, real, fn) => {
+    if (visible == null || visible === '') return;
+    const ok = fn(visible, real);
+    if (!ok) alterado = true;
+    comparaciones.push({ campo, ok });
+  };
+  cmp('nombre',  visibles.n,  datos.n,  (a,b) => normalizar(a) === normalizar(b));
+  cmp('cédula',  visibles.cc, datos.cc, (a,b) => normalizarCedula(a) === normalizarCedula(b));
+  cmp('materia', visibles.m,  datos.m,  (a,b) => normalizar(a) === normalizar(b));
+  cmp('clase',   visibles.c,  datos.c,  (a,b) => normalizar(a) === normalizar(b));
+  cmp('puntos',  visibles.p,  datos.p,  (a,b) => Number(a) === Number(b));
+  cmp('aciertos',visibles.a,  datos.a,  (a,b) => Number(a) === Number(b));
+
+  /* ---- ¿Materia y clase coinciden con las esperadas? ---- */
+  const materiaOk = normalizar(datos.m) === normalizar(MATERIA_ESPERADA);
+  const claseOk   = normalizar(datos.c) === normalizar(CLASE_ESPERADA);
+
+  /* ---- Decidir el estado final ---- */
+  const meta = { visibles, tokenCorto };
+
+  if (faltantes.length){
+    pintarResultado({
+      tipo:'aviso',
+      titulo:'TOKEN DESCIFRADO CON CAMPOS FALTANTES',
+      detalle:'Faltan: ' + faltantes.join(', ')
+    }, datos, meta);
+    sonidoBuzz();
+  } else if (alterado){
+    pintarResultado({
+      tipo:'error',
+      titulo:'MENSAJE ALTERADO',
+      detalle:'El token es válido, pero los datos visibles del mensaje NO coinciden con los datos cifrados.'
+    }, datos, meta);
+    sonidoBuzz();
+  } else {
+    let extra = 'Token descifrado correctamente con AES-256-GCM.';
+    if (!materiaOk || !claseOk) extra += ' ⚠️ Revisa: materia o clase no coinciden con las esperadas.';
+    pintarResultado({ tipo:'ok', detalle: extra }, datos, meta);
+    sonidoDing();
+  }
+
+  /* ---- Guardar en el historial ---- */
+  agregarAlHistorial({
+    id: tokenCifrado.slice(0, 40),          // identificador único aproximado
+    fecha: datos.f || new Date().toLocaleString('es-VE'),
+    nombre: datos.n || 'Sin nombre',
+    cedula: datos.cc || '—',
+    materia: datos.m || '—',
+    clase: datos.c || '—',
+    puntos: datos.p,
+    aciertos: datos.a,
+    porcentaje: ((datos.p / 20) * 100).toFixed(0),
+    tokenCorto: tokenCorto || ''
+  });
+  renderHistorial($('#buscador').value);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   9. MENSAJE DE EJEMPLO (se cifra en vivo con la clave oficial)
+   ────────────────────────────────────────────────────────────── */
+async function cargarEjemplo(){
+  const payload = {
+    m : MATERIA_ESPERADA,
+    c : CLASE_ESPERADA,
+    n : 'María Fernanda Rodríguez',
+    cc: '28456123',
+    p : 17,
+    a : 6,
+    f : '15/01/2026 10:30',
+    d : [1,1,1,0,1,1,1]
+  };
+
+  let token;
+  try{
+    token = await cifrarToken(payload);
+  }catch(e){
+    toast('⚠️ No se pudo generar el ejemplo');
+    return;
+  }
+
+  const mensaje =
+`📊 RESULTADO DE EVALUACIÓN
+📚 Materia: ${payload.m}
+🏫 Clase: ${payload.c}
+👤 Estudiante: ${payload.n}
+🆔 Cédula: ${payload.cc}
+✅ Aciertos: ${payload.a}/7
+🎯 Nota: ${payload.p}/20
+🕒 Fecha: ${payload.f}
+
+🔑 CÓDIGO CORTO: FB26-A1B2-C3D4-E5F6-7890
+
+🔒 TOKEN CIFRADO AES-GCM:
+\`${token}\`
+
+Enviado desde la app de evaluación · Fundabit Isla de Coche`;
+
+  $('#entrada').value = mensaje;
+  toast('📋 Ejemplo cargado — pulsa "Verificar mensaje"');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   10. GENERACIÓN DE ICONOS (canvas → PNG data URI)
+   ────────────────────────────────────────────────────────────── */
+function dibujarIcono(size){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  if (!g) return '';
+
+  const r = size * 0.22;
+  const u = size / 100;   // unidad relativa
+
+  // --- Fondo con gradiente redondeado ---
+  const grad = g.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0,   '#a06cd5');
+  grad.addColorStop(0.5, '#4ecdc4');
+  grad.addColorStop(1,   '#ff6b6b');
+  g.fillStyle = grad;
+  g.beginPath();
+  if (g.roundRect) g.roundRect(0, 0, size, size, r);
+  else {
+    g.moveTo(r,0); g.lineTo(size-r,0); g.quadraticCurveTo(size,0,size,r);
+    g.lineTo(size,size-r); g.quadraticCurveTo(size,size,size-r,size);
+    g.lineTo(r,size); g.quadraticCurveTo(0,size,0,size-r);
+    g.lineTo(0,r); g.quadraticCurveTo(0,0,r,0);
+  }
+  g.fill();
+
+  // --- Cuerpo del candado ---
+  g.fillStyle = 'rgba(11,10,31,.88)';
+  const bx = 29*u, by = 47*u, bw = 42*u, bh = 33*u, br = 7*u;
+  g.beginPath();
+  if (g.roundRect) g.roundRect(bx, by, bw, bh, br);
+  else g.rect(bx, by, bw, bh);
+  g.fill();
+
+  // --- Arco del candado ---
+  g.strokeStyle = 'rgba(11,10,31,.88)';
+  g.lineWidth = 9*u;
+  g.lineCap = 'round';
+  g.beginPath();
+  g.arc(50*u, 47*u, 14*u, Math.PI, 2*Math.PI);
+  g.stroke();
+
+  // --- Check de verificación ---
+  g.strokeStyle = '#25D366';
+  g.lineWidth = 8*u;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.beginPath();
+  g.moveTo(39*u, 63*u);
+  g.lineTo(47*u, 71*u);
+  g.lineTo(63*u, 54*u);
+  g.stroke();
+
+  return c.toDataURL('image/png');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   11. PWA: MANIFEST DINÁMICO + SERVICE WORKER
+   ────────────────────────────────────────────────────────────── */
+function configurarPWA(){
+  const icono192 = dibujarIcono(192);
+  const icono512 = dibujarIcono(512);
+
+  // --- Favicon y apple-touch-icon ---
+  if (icono192){
+    $('#link-icono').setAttribute('href', icono192);
+    $('#link-favicon').setAttribute('href', icono192);
+  }
+
+  // --- Manifest embebido como Blob ---
+  const base = location.href.split('#')[0];
+  const manifest = {
+    id: base,
+    name: 'Verificador de Notas · Fundabit Isla de Coche',
+    short_name: 'Verificador Fundabit',
+    description: 'Verificador AES-GCM de evaluaciones · Fundabit Isla de Coche · Prof. Luis Vásquez',
+    start_url: base,
+    scope: base,
+    display: 'standalone',
+    orientation: 'portrait',
+    background_color: '#0b0a1f',
+    theme_color: '#a06cd5',
+    lang: 'es-VE',
+    dir: 'ltr',
+    categories: ['education','productivity','utilities'],
+    icons: [
+      { src: icono192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: icono512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: icono512, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  };
+
+  try{
+    const blob = new Blob([JSON.stringify(manifest)], { type:'application/manifest+json' });
+    const url = URL.createObjectURL(blob);
+    $('#link-manifest').setAttribute('href', url);
+  }catch(e){ /* sin manifest, la app sigue funcionando */ }
+
+  // --- Service Worker desde Blob URL (100% offline) ---
+  if ('serviceWorker' in navigator){
+    const codigoSW = `
+      const CACHE = 'fundabit-verificador-v1';
+      const NUCLEO = ['./', './index.html'];
+
+      self.addEventListener('install', e => {
+        self.skipWaiting();
+        e.waitUntil(
+          caches.open(CACHE)
+            .then(c => c.addAll(NUCLEO).catch(() => {}))
+        );
+      });
+
+      self.addEventListener('activate', e => {
+        e.waitUntil(
+          caches.keys().then(keys =>
+            Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+          ).then(() => self.clients.claim())
+        );
+      });
+
+      self.addEventListener('fetch', e => {
+        if (e.request.method !== 'GET') return;
+        e.respondWith(
+          caches.match(e.request).then(cacheado => {
+            if (cacheado) return cacheado;
+            return fetch(e.request).then(resp => {
+              const copia = resp.clone();
+              caches.open(CACHE).then(c => c.put(e.request, copia)).catch(() => {});
+              return resp;
+            }).catch(() => caches.match('./'));
+          })
+        );
+      });
+    `;
+
+    try{
+      const swBlob = new Blob([codigoSW], { type:'text/javascript' });
+      const swUrl = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swUrl, { scope: './' }).catch(() => {
+        /* Algunos navegadores no permiten SW desde blob: — la app sigue operativa */
+      });
+    }catch(e){ /* silencio */ }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   12. INSTALACIÓN (beforeinstallprompt)
+   ────────────────────────────────────────────────────────────── */
+let promptInstalacion = null;
+const btnInstalar = $('#btn-instalar');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  promptInstalacion = e;
+  btnInstalar.classList.add('visible');
+});
+
+btnInstalar.addEventListener('click', async () => {
+  if (!promptInstalacion){
+    toast('ℹ️ Usa el menú del navegador → "Añadir a pantalla de inicio"');
+    return;
+  }
+  promptInstalacion.prompt();
+  const { outcome } = await promptInstalacion.userChoice;
+  if (outcome === 'accepted') toast('🎉 ¡App instalada!');
+  promptInstalacion = null;
+  btnInstalar.classList.remove('visible');
+});
+
+window.addEventListener('appinstalled', () => {
+  btnInstalar.classList.remove('visible');
+  promptInstalacion = null;
+  toast('🎉 App instalada correctamente');
+});
+
+/* ──────────────────────────────────────────────────────────────
+   13. TEMA CLARO / OSCURO
+   ────────────────────────────────────────────────────────────── */
+function aplicarTema(tema){
+  document.body.setAttribute('data-tema', tema);
+  $('#btn-tema').textContent = tema === 'claro' ? '🌙 Modo oscuro' : '☀️ Modo claro';
+  try{ localStorage.setItem(LS_TEMA, tema); }catch(e){}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', tema === 'claro' ? '#f2f0fb' : '#a06cd5');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   14. INICIALIZACIÓN Y EVENTOS
+   ────────────────────────────────────────────────────────────── */
+function iniciar(){
+  // ---- Tema guardado ----
+  let temaGuardado = 'oscuro';
+  try{ temaGuardado = localStorage.getItem(LS_TEMA) || 'oscuro'; }catch(e){}
+  aplicarTema(temaGuardado);
+
+  // ---- PWA ----
+  configurarPWA();
+
+  // ---- Botones principales ----
+  $('#btn-verificar').addEventListener('click', verificar);
+  $('#btn-limpiar').addEventListener('click', () => {
+    $('#entrada').value = '';
+    $('#resultado').classList.remove('visible');
+    $('#resultado').innerHTML = '';
+    $('#entrada').focus();
+  });
+  $('#btn-ejemplo').addEventListener('click', cargarEjemplo);
+  $('#btn-tema').addEventListener('click', () => {
+    const actual = document.body.getAttribute('data-tema');
+    aplicarTema(actual === 'claro' ? 'oscuro' : 'claro');
+  });
+
+  // ---- Historial ----
+  $('#buscador').addEventListener('input', (e) => renderHistorial(e.target.value));
+  $('#btn-csv').addEventListener('click', exportarCSV);
+  $('#btn-borrar-hist').addEventListener('click', () => {
+    if (!leerHistorial().length){ toast('📭 El historial ya está vacío'); return; }
+    if (confirm('¿Vaciar todo el historial de verificaciones?')){
+      guardarHistorial([]);
+      renderHistorial('');
+      toast('🧹 Historial vaciado');
+    }
+  });
+
+  // ---- Atajo: Ctrl/Cmd + Enter para verificar ----
+  $('#entrada').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+      e.preventDefault();
+      verificar();
+    }
+  });
+
+  // ---- Render inicial del historial ----
+  renderHistorial('');
+}
+
+// Arranque seguro cuando el DOM esté listo
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', iniciar);
+} else {
+  iniciar();
+}
+
+})();
+</script>
+</body>
+</html>
